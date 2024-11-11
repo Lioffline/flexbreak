@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "520468309811",
+    "project_id": "flexbreak-b31bb",
+    "storage_bucket": "flexbreak-b31bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520468309811:android:ea1d3464b8946fc969c046",
+        "android_client_info": {
+          "package_name": "com.flexbox.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIJ_3CYdwPLHPMmoNaFOcTnKm5pQ9vqFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
