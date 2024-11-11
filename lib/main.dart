@@ -37,12 +37,12 @@ class MyApp extends StatelessWidget {
       ),
       home: LoginPage(),
       //home: UsersQuotaPage(),
-      
-      
+
       locale: Locale('ru', 'RU'), 
       supportedLocales: [
         Locale('ru', 'RU'), 
       ],
+      
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
