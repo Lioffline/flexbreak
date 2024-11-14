@@ -22,6 +22,26 @@ class _TimeManagementPageState extends State<TimeManagementPage> {
     _loadUserProfile();
   }
 
+  Future<bool> _isTimeOverlapping(DateTime start, DateTime end) async {
+      final query = await FirebaseFirestore.instance
+          .collection('Breaks')
+          .where('UserID', isEqualTo: userIDInt)
+          .where('date', isEqualTo: Timestamp.fromDate(
+            DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day),
+          ))
+          .get();
+
+      for (var doc in query.docs) {
+        final breakData = doc.data();
+        final existingStart = (breakData['start'] as Timestamp).toDate();
+        final existingEnd = (breakData['end'] as Timestamp).toDate();
+        if (start.isBefore(existingEnd) && end.isAfter(existingStart)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
   Future<void> _loadUserProfile() async {
     try {
       final userProfileSnapshot = await FirebaseFirestore.instance
@@ -53,37 +73,41 @@ class _TimeManagementPageState extends State<TimeManagementPage> {
     return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, time.hour, time.minute);
   }
 
-  void _selectDate() async {
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
+void _selectDate() async {
+  final firstDate = (Profession == "Модератор") ? DateTime(2020) : DateTime.now();
+  
+  final pickedDate = await showDatePicker(
+    context: context,
+    initialDate: _selectedDate,
+    firstDate: firstDate,
+    lastDate: DateTime(2030),
+  );
 
-    if (pickedDate != null && pickedDate != _selectedDate) {
+  if (pickedDate != null) {
+    if (Profession != "Модератор" && pickedDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Вы не можете выбирать прошедшие даты")),
+      );
+    } else {
       setState(() {
         _selectedDate = pickedDate;
       });
     }
   }
-
-Future<void> _addBreak(DateTime start, DateTime end, String message) async {
-  final breakData = {
-    'UserID': userIDInt,
-    'date': Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)),
-    'start': Timestamp.fromDate(DateTime(
-      _selectedDate.year, _selectedDate.month, _selectedDate.day, start.hour, start.minute
-    )),
-    'end': Timestamp.fromDate(DateTime(
-      _selectedDate.year, _selectedDate.month, _selectedDate.day, end.hour, end.minute
-    )),
-    'message': message,
-    'quota': _defaultQuota,
-  };
-
-  await FirebaseFirestore.instance.collection('Breaks').add(breakData);
 }
+
+  Future<void> _addBreak(DateTime start, DateTime end, String message) async {
+    final breakData = {
+      'UserID': userIDInt,
+      'date': Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)),
+      'start': Timestamp.fromDate(start),
+      'end': Timestamp.fromDate(end),
+      'message': message,
+      'quota': _defaultQuota,
+    };
+
+    await FirebaseFirestore.instance.collection('Breaks').add(breakData);
+  }
 
 
   Future<void> _deleteBreak(String breakId) async {
@@ -91,6 +115,13 @@ Future<void> _addBreak(DateTime start, DateTime end, String message) async {
   }
 
   void _openAddBreakDialog() {
+    if (Profession != "Модератор" && _selectedDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Вы не можете добавлять перерывы на прошедшие даты")),
+      );
+      return;
+    }
+
     DateTime start = _defaultStartTime;
     DateTime end = _defaultEndTime;
     String message = '';
@@ -98,133 +129,153 @@ Future<void> _addBreak(DateTime start, DateTime end, String message) async {
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Добавить новый перерыв',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Сообщение',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: Colors.grey[900],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onChanged: (value) => message = value,
-                ),
-                SizedBox(height: 20),
-                Row(
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.grey[900],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () async {
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(start),
-                          );
-                          if (pickedTime != null) {
-                            setState(() {
-                              start = DateTime(
-                                _selectedDate.year,
-                                _selectedDate.month,
-                                _selectedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                              end = start.add(Duration(minutes: 30));
-                            });
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                        child: Text(
-                          'Начало',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                    Text(
+                      'Добавить новый перерыв',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () async {
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(end),
-                          );
-                          if (pickedTime != null) {
-                            setState(() {
-                              end = DateTime(
-                                _selectedDate.year,
-                                _selectedDate.month,
-                                _selectedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                        child: Text(
-                          'Конец',
-                          style: TextStyle(color: Colors.white),
+                    SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Сообщение',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.grey[900],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      onChanged: (value) => message = value,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(start),
+                              );
+                              if (pickedTime != null) {
+                                setDialogState(() {
+                                  start = DateTime(
+                                    _selectedDate.year,
+                                    _selectedDate.month,
+                                    _selectedDate.day,
+                                    pickedTime.hour,
+                                    pickedTime.minute,
+                                  );
+                                  // Ensure end is at least 30 mins after start
+                                  if (end.isBefore(start.add(Duration(minutes: 30)))) {
+                                    end = start.add(Duration(minutes: 30));
+                                  }
+                                });
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(
+                              'Начало',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(end),
+                              );
+                              if (pickedTime != null) {
+                                setDialogState(() {
+                                  final tempEnd = DateTime(
+                                    _selectedDate.year,
+                                    _selectedDate.month,
+                                    _selectedDate.day,
+                                    pickedTime.hour,
+                                    pickedTime.minute,
+                                  );
+                                  if (tempEnd.isAfter(start)) {
+                                    end = tempEnd;
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("Время конца должно быть позже начала")),
+                                    );
+                                  }
+                                });
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(
+                              'Конец',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'Отмена',
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            if (message.isEmpty) message = 'Нет описания';
+                            
+                            if (await _isTimeOverlapping(start, end)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Этот перерыв пересекается с существующим")),
+                              );
+                            } else {
+                              _addBreak(start, end, message);
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          child: Text(
+                            'Добавить',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'Отмена',
-                        style: TextStyle(color: Colors.grey[400]),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        if (message.isEmpty) {
-                          message = 'Нет описания'; 
-                        }
-                        _addBreak(start, end, message);
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'Добавить',
-                        style: TextStyle(color: Colors.blue),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

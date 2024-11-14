@@ -206,7 +206,7 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '${user['userId']} - ${user['name']}',
+                                                '${user['name']}',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 18,
@@ -220,20 +220,22 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                                   color: Colors.white,
                                                   fontSize: 16,
                                                 ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
                                               ),
                                             ],
                                           ),
                                           Row(
                                             children: [
                                               Icon(
-                                                quotaBalance >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                                                color: quotaBalance >= 0 ? Colors.blue : Colors.red,
+                                                Icons.arrow_downward,
+                                                color: Colors.red,
                                               ),
                                               SizedBox(width: 6),
                                               Text(
                                                 '$quotaBalance',
                                                 style: TextStyle(
-                                                  color: quotaBalance >= 0 ? Colors.blue : Colors.red,
+                                                  color: Colors.red,
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -282,7 +284,7 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                               '${user['userId']} - ${user['name']}',
+                                               '${user['name']}',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 18,
@@ -296,26 +298,24 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                                   color: Colors.white,
                                                   fontSize: 16,
                                                 ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
                                               ),
                                             ],
                                           ),
                                           Row(
-                                            children: [
-                                              Icon(
-                                                quotaBalance >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                                                color: quotaBalance >= 0 ? Colors.blue : Colors.red,
-                                              ),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                '$quotaBalance',
-                                                style: TextStyle(
-                                                  color: quotaBalance >= 0 ? Colors.blue : Colors.red,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          children: [
+                                            Icon(
+                                              Icons.remove,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 6),
+                                            Text(
+                                              '$quotaBalance',
+                                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        )
                                         ],
                                       ),
                                     ),
@@ -358,12 +358,14 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '${user['userId']} - ${user['name']}',
+                                                '${user['name']}',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
                                                 ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
                                               ),
                                               SizedBox(height: 4),
                                               Text(
@@ -378,14 +380,14 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
                                           Row(
                                             children: [
                                               Icon(
-                                                quotaBalance >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                                                color: quotaBalance >= 0 ? Colors.blue : Colors.red,
+                                                Icons.arrow_upward,
+                                                color: Colors.blue,
                                               ),
                                               SizedBox(width: 6),
                                               Text(
                                                 '$quotaBalance',
                                                 style: TextStyle(
-                                                  color: quotaBalance >= 0 ? Colors.blue : Colors.red,
+                                                  color: Colors.blue,
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
                                                 ),

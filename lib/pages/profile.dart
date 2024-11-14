@@ -1,6 +1,8 @@
+import 'package:flexbreak/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'variable.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -15,12 +17,25 @@ class _ProfilePageState extends State<ProfilePage> {
   String defaultBreakStart = '';
   String defaultBreakEnd = '';
   List<int> weekends = [];
+  String quota = '';
   int totalQuotaBalance = 0;
   int dailyQuotaMinutes = 0;
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _defaultBreakStartController = TextEditingController();
+  final _defaultBreakEndController = TextEditingController();
+  final _quotaController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _professionController = TextEditingController();
+
+  bool isModerator = Profession == 'Модератор';
+  bool isSelfProfile = userID == LoggeduserID;
 
   @override
   void initState() {
     super.initState();
+    _fetchUserProfile();
   }
 
 
@@ -131,9 +146,170 @@ Stream<int> _calculateTotalQuotaBalance(int userId) async* {
     );
   }
 
+void _fetchUserProfile() async {
+  final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userID).get();
+  final userData = userDoc.data() as Map<String, dynamic>;
+
+  setState(() {
+    name = userData['Name'] ?? '';
+    profession = userData['Proffesion'] ?? '';
+    email = userData['mail'] ?? '';
+    defaultBreakStart = userData['defaultBreak']['start'] ?? '';
+    defaultBreakEnd = userData['defaultBreak']['end'] ?? '';
+    weekends = List<int>.from(userData['weekends'] ?? []);
+    quota = userData['quota'] ?? '';
+    
+    _nameController.text = name;
+    _emailController.text = email;
+    _defaultBreakStartController.text = defaultBreakStart;
+    _defaultBreakEndController.text = defaultBreakEnd;
+    _quotaController.text = quota;
+    _professionController.text = profession;
+  });
+}
+
+void _showEditProfileDialog() {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text("Edit Profile", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelfProfile) _buildTextField("Name", _nameController, isEditable: true),
+              if (isSelfProfile) _buildTextField("Email", _emailController, isEditable: true),
+              if (isSelfProfile) _buildTextField("Password", _passwordController, isEditable: true),
+              if (isModerator) _buildTextField("Quota", _quotaController, isEditable: true),
+              if (isModerator) _buildTextField("Profession", _professionController, isEditable: true),
+              if (isModerator) _buildWeekendsField(),
+              if (isModerator) _buildTextField("Default Break Start", _defaultBreakStartController, isEditable: true),
+              if (isModerator) _buildTextField("Default Break End", _defaultBreakEndController, isEditable: true),
+            ],
+          ),
+        ),
+        actions: [
+          if (isSelfProfile) 
+            Text(
+              "Для изменения важных данных необходимо связаться с модератором",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          TextButton(
+            onPressed: () {
+              _saveProfileChanges();
+              Navigator.pop(context);
+            },
+            child: Text("Сохранить", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildTextField(String label, TextEditingController controller, {bool isEditable = true}) {
+  return TextField(
+    controller: controller,
+    readOnly: !isEditable,
+    decoration: InputDecoration(
+      labelText: label,
+      counterStyle: TextStyle(color: Colors.white),
+      labelStyle: TextStyle(color: Colors.white),
+    ),
+    style: TextStyle(color: Colors.white),
+    maxLength: 30,
+  );
+}
+
+Widget _buildWeekendsField() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text("Weekends", style: TextStyle(color: Colors.white)),
+      Column(
+        children: List.generate(7, (index) {
+          int day = index + 1;  // 1 = пн, 7 = вс
+          return ListTile(
+            title: Text(
+              _convertWeekday(day), 
+              style: TextStyle(color: Colors.white),
+            ),
+            trailing: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Checkbox(
+                  value: weekends.contains(day),
+                  onChanged: (bool? newValue) {
+                    setState(() {
+                      if (newValue == true) {
+                        if (!weekends.contains(day)) weekends.add(day);
+                      } else {
+                        weekends.remove(day);
+                      }
+                    });
+                  },
+                  activeColor: Colors.blue,
+                );
+              },
+            ),
+          );
+        }),
+      ),
+    ],
+  );
+}
+
+void _saveProfileChanges() async {
+  final updatedData = <String, dynamic>{};
+
+  if (isSelfProfile) {
+    if (_nameController.text.isNotEmpty) {
+      updatedData['Name'] = _nameController.text;
+    }
+    if (_emailController.text.isNotEmpty) {
+      updatedData['mail'] = _emailController.text;
+    }
+    if (_passwordController.text.isNotEmpty) {
+      updatedData['password'] = _passwordController.text;
+    }
+  }
+
+  if (isModerator) {
+    updatedData.addAll({
+      'quota': _quotaController.text,
+      'Proffesion': _professionController.text,
+      'weekends': weekends,
+      'defaultBreak': {
+        'start': _defaultBreakStartController.text,
+        'end': _defaultBreakEndController.text,
+      },
+    });
+  }
+
+  await FirebaseFirestore.instance.collection('Users').doc(userID).update(updatedData);
+  _fetchUserProfile();
+}
+
+Future<void> _handleLogout() async {
+  userID = '';
+  LoggeduserID = '';
+  Profession = '';
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('loggeduserID');
+  await prefs.remove('Profession');
+
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (context) => LoginPage()),
+    (Route route) => false,
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
-    //final int userId = 1; 
     int userId = int.tryParse(userID) ?? 0;  
     return Scaffold(
       backgroundColor: Colors.black,
@@ -142,6 +318,17 @@ Stream<int> _calculateTotalQuotaBalance(int userId) async* {
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         iconTheme: IconThemeData(color: Colors.white),
+                actions: [
+          IconButton(
+            icon: Icon(Icons.edit, color: Colors.white),
+            onPressed: _showEditProfileDialog,
+          ),
+          IconButton(
+              icon: Icon(Icons.exit_to_app, color: Colors.red),
+              onPressed: _handleLogout,
+              tooltip: 'Выход из системы',
+          )
+        ],
       ),
       body: SingleChildScrollView(  
         child: StreamBuilder<DocumentSnapshot>(
@@ -198,29 +385,40 @@ Stream<int> _calculateTotalQuotaBalance(int userId) async* {
                                 maxLines: 1,
                               ),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    totalQuotaBalance >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                                    color: totalQuotaBalance >= 0 ? Colors.blue : Colors.red,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  totalQuotaBalance > 0
+                                      ? Icons.arrow_upward
+                                      : totalQuotaBalance < 0
+                                          ? Icons.arrow_downward
+                                          : Icons.remove, 
+                                  color: totalQuotaBalance > 0
+                                      ? Colors.blue
+                                      : totalQuotaBalance < 0
+                                          ? Colors.red
+                                          : Colors.white, 
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '$totalQuotaBalance',
+                                  style: TextStyle(
+                                    color: totalQuotaBalance > 0
+                                        ? Colors.blue
+                                        : totalQuotaBalance < 0
+                                            ? Colors.red
+                                            : Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    '$totalQuotaBalance',
-                                    style: TextStyle(
-                                      color: totalQuotaBalance >= 0 ? Colors.blue : Colors.red,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            )
                             ],
                           ),
                         ),
                       ],
                     ),
-
                       SizedBox(height: 20),
                       Container(
                         padding: EdgeInsets.all(12),

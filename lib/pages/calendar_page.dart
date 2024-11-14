@@ -239,7 +239,7 @@ String? _calculateRemainingQuota(List<Map<String, dynamic>> breaks) {
           ),
         ],
       ),
-      body: SingleChildScrollView(  // Оборачиваем тело в SingleChildScrollView
+      body: SingleChildScrollView(  
         child: Column(
           children: [
             AnimatedContainer(
@@ -347,29 +347,35 @@ String? _calculateRemainingQuota(List<Map<String, dynamic>> breaks) {
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      int.parse(remainingQuota) >= 0
-                                          ? Icons.arrow_upward
-                                          : Icons.arrow_downward,
-                                      color: int.parse(remainingQuota) >= 0
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    int.parse(remainingQuota) > 0
+                                        ? Icons.arrow_upward
+                                        : int.parse(remainingQuota) < 0
+                                            ? Icons.arrow_downward
+                                            : Icons.remove, 
+                                    color: int.parse(remainingQuota) > 0
+                                        ? Colors.blue
+                                        : int.parse(remainingQuota) < 0
+                                            ? Colors.red
+                                            : Colors.white, 
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    remainingQuota,
+                                    style: TextStyle(
+                                      color: int.parse(remainingQuota) > 0
                                           ? Colors.blue
-                                          : Colors.red,
+                                          : int.parse(remainingQuota) < 0
+                                              ? Colors.red
+                                              : Colors.white, 
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      remainingQuota,
-                                      style: TextStyle(
-                                        color: int.parse(remainingQuota) >= 0
-                                            ? Colors.blue
-                                            : Colors.red,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
+                              )
                               ),
                             ...breaksForSelectedDay.map((breakInfo) {
                               final breakStart = breakInfo['start'] as DateTime;

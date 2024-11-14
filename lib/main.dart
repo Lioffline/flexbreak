@@ -1,14 +1,11 @@
+import 'package:flexbreak/pages/variable.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
-// ignore: unused_import
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// ignore: unused_import
 import 'pages/home_page.dart';
-// ignore: unused_import
 import 'pages/login_page.dart';
-// ignore: unused_import
 import 'pages/usersQuotaPage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -20,6 +17,11 @@ void main() async {
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
+
+  final prefs = await SharedPreferences.getInstance();
+  LoggeduserID = prefs.getString('loggeduserID') ?? '';
+  Profession = prefs.getString('Profession') ?? '';
+  userID = LoggeduserID;
 
   runApp(const MyApp());
 }
@@ -35,8 +37,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: LoginPage(),
-      //home: UsersQuotaPage(),
+
+      home: LoggeduserID.isNotEmpty
+          ? (Profession == "Модератор" ? UsersQuotaPage() : HomePage())
+          : LoginPage(),
 
       locale: Locale('ru', 'RU'), 
       supportedLocales: [

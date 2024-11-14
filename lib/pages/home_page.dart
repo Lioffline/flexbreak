@@ -34,14 +34,15 @@ class _HomePageState extends State<HomePage> {
 
         items: const [
           BottomNavigationBarItem( 
-            icon: Icon(Icons.home),
-            label: '1',
+            icon: Icon(Icons.done),
+            label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '2',
+            icon: Icon(Icons.account_circle),
+            label: '',
           ),
         ],
+        iconSize: 32
       ),
     );
   }
