@@ -35,10 +35,9 @@ class _HomePageState extends State<CalendarPage> {
   }
 
   Stream<List<int>> _loadUserWeekends() {
-    String userId = userID;
     return FirebaseFirestore.instance
         .collection('Users')
-        .doc(userId.toString())
+        .doc(userID)
         .snapshots()
         .map((userDoc) {
       if (userDoc.exists) {
@@ -51,8 +50,7 @@ class _HomePageState extends State<CalendarPage> {
   }
 
   Future<void> _loadUserDefaultBreak() async {
-    String userId = userID;
-    final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId.toString()).get();
+    final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userID.toString()).get();
     if (userDoc.exists) {
       final userData = userDoc.data();
       final breakData = userData?['defaultBreak'] as Map<String, dynamic>;
@@ -67,10 +65,9 @@ class _HomePageState extends State<CalendarPage> {
   }
 
   void _loadUserDefaultBreakStream() {
-    String userId = userID;
     FirebaseFirestore.instance
         .collection('Users')
-        .doc(userId.toString())
+        .doc(userID)
         .snapshots()
         .listen((userDoc) {
       if (userDoc.exists) {
@@ -110,10 +107,9 @@ class _HomePageState extends State<CalendarPage> {
   }
 
   Stream<Map<DateTime, List<Map<String, dynamic>>>> _loadBreaksFromFirestore() {
-    int userId = int.tryParse(userID) ?? 0;
     return FirebaseFirestore.instance
         .collection('Breaks')
-        .where('UserID', isEqualTo: userId)
+        .where('UserID', isEqualTo: userID)
         .snapshots()
         .map((snapshot) {
       final customBreaks = <DateTime, List<Map<String, dynamic>>>{};

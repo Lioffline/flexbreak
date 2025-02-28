@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
@@ -20,129 +21,89 @@ class _LoginPageState extends State<LoginPage> {
   final _registerPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  Future<int> _getNextUserId() async {
-    final counterDoc = FirebaseFirestore.instance.collection('metadata').doc('userCounter');
-    final counterSnapshot = await counterDoc.get();
-
-    if (!counterSnapshot.exists) {
-      await counterDoc.set({'count': 1});
-      return 1;
-    } else {
-      int nextId = counterSnapshot['count'] + 1;
-      await counterDoc.update({'count': nextId});
-      return nextId;
-    }
-  }
-
   Future<void> _login() async {
   final email = _emailController.text.trim();
   final password = _passwordController.text.trim();
 
   try {
-    final userSnapshot = await FirebaseFirestore.instance
-        .collection('Users')
-        .where('mail', isEqualTo: email)
-        .where('password', isEqualTo: password)
-        .get();
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-    if (userSnapshot.docs.isNotEmpty) {
-      userID = userSnapshot.docs.first.id;
-      LoggeduserID = userID;
-      Profession = userSnapshot.docs.first['Proffesion'];
+    String firebaseUserID = userCredential.user!.uid;
 
-      setState(() {
-        userID = userID;
-        LoggeduserID = LoggeduserID;
-        Profession = Profession;
-      });
+    final userSnapshot = await FirebaseFirestore.instance.collection('Users').doc(firebaseUserID).get();
+
+    if (userSnapshot.exists) {
+      userID = firebaseUserID;
+      LoggeduserID = firebaseUserID;
+      Profession = userSnapshot['Proffesion'];
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('loggeduserID', LoggeduserID);
       await prefs.setString('Profession', Profession);
 
       if (Profession == "Модератор") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => UsersQuotaPage()),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => UsersQuotaPage()));
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
       }
     } else {
       setState(() {
-        errorMessage = 'Неверный email или пароль';
+        errorMessage = 'Пользователь не найден';
       });
     }
   } catch (e) {
     setState(() {
-      errorMessage = 'Произошла ошибка. Попробуйте позже.';
+      errorMessage = 'Ошибка входа: ${e.toString()}';
     });
   }
 }
 
-
   Future<void> _register() async {
-    final name = _nameController.text.trim();
-    final email = _registerEmailController.text.trim();
-    final password = _registerPasswordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
+  final name = _nameController.text.trim();
+  final email = _registerEmailController.text.trim();
+  final password = _registerPasswordController.text.trim();
+  final confirmPassword = _confirmPasswordController.text.trim();
 
-    final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
-    if (!emailRegex.hasMatch(email)) {
-      setState(() {
-        errorMessage = 'Неверный формат email';
-      });
-      return;
-    }
-
-    if (password != confirmPassword) {
-      setState(() {
-        errorMessage = 'Пароли не совпадают';
-      });
-      return;
-    }
-
-    final emailCheck = await FirebaseFirestore.instance
-        .collection('Users')
-        .where('mail', isEqualTo: email)
-        .get();
-
-    if (emailCheck.docs.isNotEmpty) {
-      setState(() {
-        errorMessage = 'Пользователь с таким email уже существует';
-      });
-      return;
-    }
-
-    try {
-      int newUserId = await _getNextUserId();
-
-      await FirebaseFirestore.instance.collection('Users').doc(newUserId.toString()).set({
-        'Name': name,
-        'Proffesion': 'Неподтвержденный аккаунт',
-        'defaultBreak': {
-          'start': '00:00',
-          'end': '00:00',
-        },
-        'mail': email,
-        'password': password,
-        'quota': '00:00',
-        'weekends': [6, 7],
-      });
-
-      Navigator.of(context).pop();
-      setState(() {
-        errorMessage = 'Регистрация прошла успешно. Войдите в систему.';
-      });
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Произошла ошибка при регистрации.';
-      });
-    }
+  if (password != confirmPassword) {
+    setState(() {
+      errorMessage = 'Пароли не совпадают';
+    });
+    return;
   }
+
+  try {
+    // Создание пользователя в Firebase Authentication
+    UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    String firebaseUserID = userCredential.user!.uid;
+
+    // Запись данных в Firestore
+    await FirebaseFirestore.instance.collection('Users').doc(firebaseUserID).set({
+      'Name': name,
+      'Proffesion': 'Неподтвержденный аккаунт',
+      'defaultBreak': {'start': '00:00', 'end': '00:00'},
+      'mail': email,
+      'quota': '00:00',
+      'weekends': [6, 7],
+    });
+
+    Navigator.of(context).pop();
+    setState(() {
+      errorMessage = 'Регистрация успешна. Войдите в систему.';
+    });
+  } catch (e) {
+    setState(() {
+      errorMessage = 'Ошибка регистрации: ${e.toString()}';
+    });
+  }
+}
+
 
   void _showRegisterDialog() {
     showDialog(

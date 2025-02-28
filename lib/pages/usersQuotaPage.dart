@@ -51,7 +51,7 @@ class _UsersQuotaPageState extends State<UsersQuotaPage> {
 
       for (var doc in snapshot.docs) {
         final userData = doc.data();
-        final userId = int.parse(doc.id);
+        final userId = doc.id;
         final userName = userData['Name'] ?? 'Unnamed';
         final profession = userData['Proffesion'] ?? 'Unknown'; 
 

@@ -50,10 +50,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
 
-Stream<int> _calculateTotalQuotaBalance(int userId) async* {
+Stream<int> _calculateTotalQuotaBalance(userID) async* {
   final breakSnapshots = FirebaseFirestore.instance
       .collection('Breaks')
-      .where('UserID', isEqualTo: userId)
+      .where('UserID', isEqualTo: userID)
       .snapshots();
 
   await for (var snapshot in breakSnapshots) {
@@ -101,10 +101,10 @@ Stream<int> _calculateTotalQuotaBalance(int userId) async* {
   }
 }
 
-  Stream<DocumentSnapshot> _getUserData(int userId) {
+  Stream<DocumentSnapshot> _getUserData(userID) {
     return FirebaseFirestore.instance
         .collection('Users')
-        .doc(userId.toString())
+        .doc(userID)
         .snapshots();
   }
 
@@ -309,8 +309,7 @@ Future<void> _handleLogout() async {
 
 
   @override
-  Widget build(BuildContext context) {
-    int userId = int.tryParse(userID) ?? 0;  
+  Widget build(BuildContext context) { 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -332,7 +331,7 @@ Future<void> _handleLogout() async {
       ),
       body: SingleChildScrollView(  
         child: StreamBuilder<DocumentSnapshot>(
-          stream: _getUserData(userId), 
+          stream: _getUserData(userID), 
           builder: (context, userSnapshot) {
             if (!userSnapshot.hasData) {
               return Center(child: CircularProgressIndicator()); 
@@ -350,7 +349,7 @@ Future<void> _handleLogout() async {
             dailyQuotaMinutes = _parseQuotaToMinutes(userData['quota'] ?? '01:30');
 
             return StreamBuilder<int>(
-              stream: _calculateTotalQuotaBalance(userId), 
+              stream: _calculateTotalQuotaBalance(userID), 
               builder: (context, balanceSnapshot) {
                 if (!balanceSnapshot.hasData) {
                   return Center(child: CircularProgressIndicator()); 

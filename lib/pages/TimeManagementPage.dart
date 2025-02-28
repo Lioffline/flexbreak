@@ -14,8 +14,6 @@ class _TimeManagementPageState extends State<TimeManagementPage> {
   DateTime _defaultStartTime = DateTime.now().add(Duration(hours: 13));
   DateTime _defaultEndTime = DateTime.now().add(Duration(hours: 13, minutes: 30));
 
-  int get userIDInt => int.tryParse(userID) ?? 0;
-
   @override
   void initState() {
     super.initState();
@@ -25,7 +23,7 @@ class _TimeManagementPageState extends State<TimeManagementPage> {
   Future<bool> _isTimeOverlapping(DateTime start, DateTime end) async {
       final query = await FirebaseFirestore.instance
           .collection('Breaks')
-          .where('UserID', isEqualTo: userIDInt)
+          .where('UserID', isEqualTo: userID)
           .where('date', isEqualTo: Timestamp.fromDate(
             DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day),
           ))
@@ -98,7 +96,7 @@ void _selectDate() async {
 
   Future<void> _addBreak(DateTime start, DateTime end, String message) async {
     final breakData = {
-      'UserID': userIDInt,
+      'UserID': userID,
       'date': Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)),
       'start': Timestamp.fromDate(start),
       'end': Timestamp.fromDate(end),
@@ -310,7 +308,7 @@ void _selectDate() async {
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Breaks')
-                  .where('UserID', isEqualTo: userIDInt)
+                  .where('UserID', isEqualTo: userID)
                   .where('date', isEqualTo: Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)))
                   .snapshots(),
               builder: (context, snapshot) {
