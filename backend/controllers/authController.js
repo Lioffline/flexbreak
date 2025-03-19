@@ -27,6 +27,7 @@ async function login(req, res) {
   }
 }
 
+
 async function register(req, res) {
   const { name, email, password } = req.body;
 
