@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'variable.dart';
+import 'package:flexbreak/utils/quota_utils.dart';
+
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -38,18 +40,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _fetchUserProfile();
   }
 
-
-  int _parseQuotaToMinutes(String quota) {
-    final parts = quota.split(':');
-    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
-  }
-
-  String _convertWeekday(int day) {
-    final daysOfWeek = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-    return daysOfWeek[day - 1];
-  }
-
-
 Stream<int> _calculateTotalQuotaBalance(userID) async* {
   final breakSnapshots = FirebaseFirestore.instance
       .collection('Breaks')
@@ -77,7 +67,7 @@ Stream<int> _calculateTotalQuotaBalance(userID) async* {
 
       final int breakDuration = (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute);
       
-      final int quotaMinutes = _parseQuotaToMinutes(quota);
+      final int quotaMinutes = parseQuotaToMinutes(quota);
 
       String dayKey = DateFormat('yyyy-MM-dd').format(start);
 
@@ -127,7 +117,7 @@ Stream<int> _calculateTotalQuotaBalance(userID) async* {
               ),
               child: Center(
                 child: Text(
-                  _convertWeekday(i + 1),
+                  convertWeekday(i + 1),
                   style: TextStyle(
                     color: isWeekend ? Colors.white : Colors.white70,
                     fontSize: 16,
@@ -174,7 +164,7 @@ void _showEditProfileDialog() {
     builder: (context) {
       return AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text("Edit Profile", style: TextStyle(color: Colors.white)),
+        title: Text("Настройки", style: TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -234,7 +224,7 @@ Widget _buildWeekendsField() {
           int day = index + 1;  // 1 = пн, 7 = вс
           return ListTile(
             title: Text(
-              _convertWeekday(day), 
+              convertWeekday(day), 
               style: TextStyle(color: Colors.white),
             ),
             trailing: StatefulBuilder(
@@ -346,7 +336,7 @@ Future<void> _handleLogout() async {
             defaultBreakStart = userData['defaultBreak']['start'] ?? '13:30';
             defaultBreakEnd = userData['defaultBreak']['end'] ?? '14:00';
             weekends = List<int>.from(userData['weekends'] ?? []);
-            dailyQuotaMinutes = _parseQuotaToMinutes(userData['quota'] ?? '01:30');
+            dailyQuotaMinutes = parseQuotaToMinutes(userData['quota'] ?? '01:30');
 
             return StreamBuilder<int>(
               stream: _calculateTotalQuotaBalance(userID), 
